@@ -4,8 +4,9 @@ import { dummyProducts } from "../assets/assets";
 import toast from "react-hot-toast";
 import axios from "axios";
 
-// Configure axios with baseURL
-axios.defaults.baseURL = "http://localhost:5000";
+// Configure axios with baseURL - use environment variable or default to localhost
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true;
 
 // Add response interceptor to handle 401 errors globally
