@@ -9,9 +9,9 @@ const orderSchema = new mongoose.Schema(
     },
     items: [
       {
+        // allow storing either a Product ObjectId or a client-side id/string (useful for local/dev dummy data)
         product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
+          type: mongoose.Schema.Types.Mixed,
           required: true,
         },
         quantity: {
@@ -31,9 +31,11 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
     address: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Address",
-      required: true,
+      street: String,
+      city: String,
+      state: String,
+      country: String,
+      postalCode: String,
     },
     status: {
       type: String,
@@ -42,7 +44,7 @@ const orderSchema = new mongoose.Schema(
     },
     paymentType: {
       type: String,
-      enum: ["COD", "Card"],
+      enum: ["COD", "Card", "Online"],
       required: true,
     },
     isPaid: {

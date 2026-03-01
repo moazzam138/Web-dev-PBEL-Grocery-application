@@ -9,6 +9,7 @@ const router = express.Router();
 
 router.post("/login", sellerLogin);
 router.get("/is-auth", authSeller, checkAuth);
-router.get("/logout", authSeller, sellerLogout);
+// Allow seller logout without requiring auth so cookie can be cleared
+router.get("/logout", sellerLogout);
 
 export default router;

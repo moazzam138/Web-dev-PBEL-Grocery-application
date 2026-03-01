@@ -9,6 +9,8 @@ import { authSeller } from "../middlewares/authSeller.js";
 
 const router = express.Router();
 router.post("/cod", authUser, placeOrderCOD);
+router.post("/place", authUser, placeOrderCOD);
+router.get("/my-orders", authUser, getUserOrders);
 router.get("/user", authUser, getUserOrders);
 router.get("/seller", authSeller, getAllOrders);
 

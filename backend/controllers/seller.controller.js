@@ -49,10 +49,7 @@ export const sellerLogout = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "Strict",
     });
-    return res.status(200).json({
-      message: "Logged out successfully",
-      success: true,
-    });
+    return res.status(200).json({ message: "Logged out successfully", success: true });
   } catch (error) {
     console.error("Error in logout:", error);
     res.status(500).json({ message: "Internal server error" });

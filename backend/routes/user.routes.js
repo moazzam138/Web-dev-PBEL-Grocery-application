@@ -11,6 +11,7 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.get("/is-auth", authUser, checkAuth);
-router.get("/logout", authUser, logout);
+// Allow logout even if auth middleware fails (clears cookie)
+router.get("/logout", logout);
 
 export default router;

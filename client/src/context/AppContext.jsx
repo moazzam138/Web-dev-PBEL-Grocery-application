@@ -4,21 +4,17 @@ import { dummyProducts } from "../assets/assets";
 import toast from "react-hot-toast";
 import axios from "axios";
 
-// Configure axios with baseURL - use environment variable or default to localhost
+// Configure axios base URL
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true;
 
-// Add response interceptor to handle 401 errors globally
+// Handle 401 errors globally
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle 401 errors silently - don't show toast
     if (error.response?.status === 401) {
-      // Only log, don't show to user
       console.warn("Unauthorized request:", error.config?.url);
-      // You can add logic here to redirect to login if needed
-      return Promise.reject(error);
     }
     return Promise.reject(error);
   }
@@ -34,155 +30,198 @@ const AppContextProvider = ({ children }) => {
   const [showUserLogin, setShowUserLogin] = useState(false);
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState({});
-  const [searchQuery, setSearchQuery] = useState({});
+  const [searchQuery, setSearchQuery] = useState("");
   const [userOrders, setUserOrders] = useState([]);
 
+  // Fetch products
   const fetchProducts = async () => {
     setProducts(dummyProducts);
   };
 
+  // Add to cart
   const addToCart = (itemId) => {
-    let cartData = structuredClone(cartItems || {});
-    if (cartData[itemId]) {
-      cartData[itemId] += 1;
-    } else {
-      cartData[itemId] = 1;
-    }
-
+    let cartData = structuredClone(cartItems);
+    cartData[itemId] = (cartData[itemId] || 0) + 1;
     setCartItems(cartData);
     toast.success("Added to cart");
   };
 
-  // update cart item quantity
+  // Update cart
   const updateCartItem = (itemId, quantity) => {
     let cartData = structuredClone(cartItems);
     cartData[itemId] = quantity;
     setCartItems(cartData);
-    toast.success(`cart updated`);
+    toast.success("Cart updated");
   };
 
-  // total cart items
-  const cartCount = () => {
-    let totalCount = 0;
-    for (const item in cartItems) {
-      totalCount += cartItems[item];
-    }
-    return totalCount;
-  };
-
-  // total cart amount
-  const totalCartAmount = () => {
-    let totalAmount = 0;
-    for (const items in cartItems) {
-      let itemInfo = products.find((product) => product._id === items);
-      if (cartItems[items] > 0) {
-        totalAmount += cartItems[items] * itemInfo.offerPrice;
-      }
-    }
-    return Math.floor(totalAmount * 100) / 100;
-  };
-
-  // remove product from cart
+  // Remove from cart
   const removeFromCart = (itemId) => {
     let cartData = structuredClone(cartItems);
     if (cartData[itemId]) {
       cartData[itemId] -= 1;
-      if (cartData[itemId] === 0) {
-        delete cartData[itemId];
-      }
-      toast.success(`remove from cart`);
+      if (cartData[itemId] === 0) delete cartData[itemId];
       setCartItems(cartData);
+      toast.success("Removed from cart");
     }
   };
 
-  // Logout function - clears user session and redirects to home
-  const logout = async () => {
-    try {
-      // Only call logout endpoint if user exists (has valid token)
-      if (user) {
-        await axios.get("/api/user/logout");
-      }
-    } catch (error) {
-      // Silently handle errors - we're logging out anyway
-      console.error("Logout error:", error.message);
-    } finally {
-      // Clear all authentication data
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      sessionStorage.clear();
-      
-      // Clear app context state
-      setUser(null);
-      setIsSeller(null);
-      setCartItems({});
-      setUserOrders([]);
-      setShowUserLogin(false);
-      
-      // Redirect to homepage
-      navigate("/", { replace: true });
-      
-      // Show success message
-      toast.success("Logged out successfully");
-    }
+  // Cart count
+  const cartCount = () => {
+    return Object.values(cartItems).reduce((a, b) => a + b, 0);
   };
 
-  // Fetch user orders from backend
-  const fetchUserOrders = async () => {
+  // Cart total
+  const totalCartAmount = () => {
+    let total = 0;
+    for (const id in cartItems) {
+      const item = products.find((p) => p._id === id);
+      if (item) total += cartItems[id] * item.offerPrice;
+    }
+    return Math.floor(total * 100) / 100;
+  };
+
+  // Register user
+  const registerUser = async (name, email, password) => {
     try {
-      const { data } = await axios.get("/api/order/my-orders");
+      console.log("Registering user with:", { name, email });
+      const { data } = await axios.post("/api/user/register", {
+        name,
+        email,
+        password,
+      });
+
       if (data.success) {
-        setUserOrders(data.orders || []);
-      }
-    } catch (error) {
-      console.error("Fetch orders error:", error.message);
-      // Silently fail - will show dummy data as fallback
-    }
-  };
-
-  // Place a new order
-  const placeOrder = async (orderData) => {
-    try {
-      const { data } = await axios.post("/api/order/place", orderData);
-      if (data.success) {
-        toast.success("Order placed successfully! 🎉");
-        // Refresh orders after placing new order
-        await fetchUserOrders();
-        return { success: true, orderId: data.orderId };
+        setUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        toast.success("Account created successfully!");
+        return { success: true };
       } else {
-        toast.error(data.message || "Failed to place order");
+        const errMsg = data.message || "Registration failed";
+        toast.error(errMsg);
+        console.error("Registration error response:", data);
         return { success: false };
       }
     } catch (error) {
-      console.error("Place order error:", error.message);
-      toast.error("Error placing order. Please try again.");
+      const errorMsg = error.response?.data?.message || error.message || "Registration failed";
+      toast.error(errorMsg);
+      console.error("Register Error - Status:", error.response?.status, "Message:", errorMsg, "Full:", error);
       return { success: false };
     }
   };
 
+  // Login user
+  const loginUser = async (email, password) => {
+    try {
+      console.log("Logging in user with email:", email);
+      const { data } = await axios.post("/api/user/login", {
+        email,
+        password,
+      });
+
+      if (data.success) {
+        setUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        toast.success("Logged in successfully!");
+        return { success: true };
+      } else {
+        const errMsg = data.message || "Login failed";
+        toast.error(errMsg);
+        console.error("Login error response:", data);
+        return { success: false };
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || "Login failed";
+      toast.error(errorMsg);
+      console.error("Login Error - Status:", error.response?.status, "Message:", errorMsg, "Full:", error);
+      return { success: false };
+    }
+  };
+
+  // Check authentication
+  const checkAuth = async () => {
+    try {
+      const { data } = await axios.get("/api/user/is-auth");
+      if (data.success && data.user) {
+        setUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+    } catch (error) {
+      // User not authenticated
+      localStorage.removeItem("user");
+      setUser(null);
+    }
+  };
+
+  // Logout
+  const logout = async () => {
+    try {
+      await axios.get("/api/user/logout");
+    } catch (error) {
+      console.error("Logout API call failed:", error.message);
+      // Continue with logout even if API call fails (clear local state)
+    } finally {
+      // Always clear local state regardless of API success
+      localStorage.removeItem("user");
+      sessionStorage.clear();
+      setUser(null);
+      setIsSeller(null);
+      setCartItems({});
+      setUserOrders([]);
+      navigate("/", { replace: true });
+      toast.success("Logged out successfully");
+    }
+  };
+
+  // Fetch user orders
+  const fetchUserOrders = async () => {
+    try {
+      const { data } = await axios.get("/api/order/my-orders");
+      if (data.success) setUserOrders(data.orders || []);
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
+  // Place order
+  const placeOrder = async (orderData) => {
+    try {
+      console.log("Placing order with data:", orderData);
+      const { data } = await axios.post("/api/order/place", orderData);
+      if (data.success) {
+        toast.success("Order placed successfully 🎉");
+        await fetchUserOrders();
+        return { success: true };
+      } else {
+        const errMsg = data.message || "Order placement failed";
+        toast.error(errMsg);
+        console.error("Order placement error:", data);
+        return { success: false };
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || "Order failed";
+      toast.error(errorMsg);
+      console.error("Order Error - Status:", error.response?.status, "Message:", errorMsg, "Full:", error);
+      return { success: false };
+    }
+  };
+
+  // Check user authentication on app load
   useEffect(() => {
+    checkAuth();
     fetchProducts();
   }, []);
 
-  // update database cart items
   useEffect(() => {
     const updateCart = async () => {
       try {
-        const { data } = await axios.post("/api/cart/update", { cartItems });
-
-        if (!data.success) {
-          toast.error(data.message);
-        }
+        await axios.post("/api/cart/update", { cartItems });
       } catch (error) {
-        // Only show error toast for non-401 errors
         if (error.response?.status !== 401) {
-          console.error("Cart update error:", error.message);
+          console.error(error.message);
         }
       }
     };
-
-    if (user) {
-      updateCart();
-    }
+    if (user) updateCart();
   }, [cartItems, user]);
 
   const value = {
@@ -195,7 +234,6 @@ const AppContextProvider = ({ children }) => {
     setShowUserLogin,
     products,
     cartItems,
-    axios,
     addToCart,
     updateCartItem,
     removeFromCart,
@@ -203,13 +241,15 @@ const AppContextProvider = ({ children }) => {
     setSearchQuery,
     cartCount,
     totalCartAmount,
-    fetchProducts,
     setCartItems,
+    registerUser,
+    loginUser,
     logout,
+    checkAuth,
     userOrders,
-    setUserOrders,
     fetchUserOrders,
     placeOrder,
+    axios,
   };
 
   return (
@@ -219,8 +259,6 @@ const AppContextProvider = ({ children }) => {
   );
 };
 
-export const useAppContext = () => {
-  return useContext(AppContext);
-};
+export const useAppContext = () => useContext(AppContext);
 
 export default AppContextProvider;

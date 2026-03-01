@@ -34,14 +34,25 @@ const Navbar = () => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    // Use 'click' instead of 'mousedown' so it fires AFTER menu item clicks
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    setProfileOpen(false);
-    setOpen(false);
+  const handleLogout = async (e) => {
+    e?.stopPropagation();
+    try {
+      await logout();
+    } catch (e) {
+      console.error('Logout failed from Navbar:', e);
+    } finally {
+      setProfileOpen(false);
+      setOpen(false);
+    }
+  };
+
+  const handleProfileClickWithStop = (path) => {
+    handleProfileClick(path);
   };
 
   const handleProfileClick = (path) => {
@@ -93,7 +104,7 @@ const Navbar = () => {
           </svg>
         </div>
 
-        <div onClick={() => navigate("/cart")} className="relative cursor-pointer">
+        <div onClick={(e) => {e.stopPropagation(); navigate("/cart");}} className="relative cursor-pointer">
           <img src={assets.cart_icon} alt="" className="w-8 h-8" />
           <button className="absolute -top-2 -right-3 text-xs text-white bg-indigo-500 w-4.5 h-[18px] rounded-full">
             {cartCount()}
@@ -105,19 +116,19 @@ const Navbar = () => {
             <img
               src={assets.profile_icon}
               alt="profile"
-              onClick={() => setProfileOpen(!profileOpen)}
+              onClick={(e) => {e.stopPropagation(); setProfileOpen(!profileOpen);}}
               className="w-10 cursor-pointer hover:opacity-80 transition"
             />
             {profileOpen && (
-              <ul className="absolute top-12 right-0 bg-white shadow-lg border border-gray-200 py-2 w-40 rounded-md z-40 text-sm">
+              <ul className="absolute top-12 right-0 bg-white shadow-lg border border-gray-200 py-2 w-40 rounded-md z-40 text-sm" onClick={(e) => e.stopPropagation()}>
                 <li
-                  onClick={() => handleProfileClick("/profile")}
+                  onClick={(e) => {e.stopPropagation(); handleProfileClick("/profile");}}
                   className="px-4 py-2 cursor-pointer hover:bg-gray-100 transition"
                 >
                   Profile
                 </li>
                 <li
-                  onClick={() => handleProfileClick("/my-orders")}
+                  onClick={(e) => {e.stopPropagation(); handleProfileClick("/my-orders");}}
                   className="px-4 py-2 cursor-pointer hover:bg-gray-100 transition"
                 >
                   My Orders
@@ -186,15 +197,15 @@ const Navbar = () => {
               <span>Profile</span>
             </button>
             {profileOpen && (
-              <ul className="mt-2 bg-gray-50 border border-gray-200 rounded-md py-2 w-full text-sm">
+              <ul className="mt-2 bg-gray-50 border border-gray-200 rounded-md py-2 w-full text-sm" onClick={(e) => e.stopPropagation()}>
                 <li
-                  onClick={() => handleProfileClick("/profile")}
+                  onClick={(e) => {e.stopPropagation(); handleProfileClick("/profile");}}
                   className="px-4 py-2 cursor-pointer hover:bg-gray-100 transition"
                 >
                   My Profile
                 </li>
                 <li
-                  onClick={() => handleProfileClick("/my-orders")}
+                  onClick={(e) => {e.stopPropagation(); handleProfileClick("/my-orders");}}
                   className="px-4 py-2 cursor-pointer hover:bg-gray-100 transition"
                 >
                   My Orders

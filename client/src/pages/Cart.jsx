@@ -64,13 +64,18 @@ const Cart = () => {
       return toast.error("Your cart is empty");
     }
 
+    // Calculate shipping fee
+    const subtotal = totalCartAmount();
+    const shippingFee = subtotal > 100 ? 0 : 20;
+    const tax = (subtotal * 2) / 100;
+
     // Prepare order data
     const orderData = {
       items: cartArray,
       addressId: selectedAddress._id || null,
       address: selectedAddress,
       paymentType: paymentOption,
-      amount: totalCartAmount() + (totalCartAmount() * 2) / 100,
+      amount: subtotal + tax + shippingFee,
     };
 
     // Place order via context
@@ -258,7 +263,9 @@ const Cart = () => {
           </p>
           <p className="flex justify-between">
             <span>Shipping Fee</span>
-            <span className="text-green-600">Free</span>
+            <span className={totalCartAmount() > 100 ? "text-green-600" : "text-gray-500"}>
+              {totalCartAmount() > 100 ? "Free" : "₹20"}
+            </span>
           </p>
           <p className="flex justify-between">
             <span>Tax (2%)</span>
@@ -266,7 +273,11 @@ const Cart = () => {
           </p>
           <p className="flex justify-between text-lg font-medium mt-3">
             <span>Total Amount:</span>
-            <span>{totalCartAmount() + (totalCartAmount() * 2) / 100}</span>
+            <span>
+              {totalCartAmount() + 
+                (totalCartAmount() * 2) / 100 + 
+                (totalCartAmount() > 100 ? 0 : 20)}
+            </span>
           </p>
         </div>
 

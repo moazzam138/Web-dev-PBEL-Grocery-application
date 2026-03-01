@@ -7,12 +7,33 @@ const Auth = () => {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-     const  {setShowUserLogin,setUser}= useContext(AppContext);
+    const [loading, setLoading] = useState(false);
+    const { setShowUserLogin, registerUser, loginUser } = useContext(AppContext);
 
 
-    const submitHandler=async(e)=>{
+    const submitHandler = async (e) => {
       e.preventDefault();
-      console.log("name",name,"email",email,"password",password);
+      setLoading(true);
+
+      if (state === "register") {
+        // Register
+        const result = await registerUser(name, email, password);
+        if (result.success) {
+          setShowUserLogin(false);
+          setName("");
+          setEmail("");
+          setPassword("");
+        }
+      } else {
+        // Login
+        const result = await loginUser(email, password);
+        if (result.success) {
+          setShowUserLogin(false);
+          setEmail("");
+          setPassword("");
+        }
+      }
+      setLoading(false);
     }
 
     return (
@@ -49,13 +70,10 @@ const Auth = () => {
                 </p>
             )}
             <button 
-            onClick={()=>{
-              setUser(true);
-              setShowUserLogin(false);
-            }
-            }
-            className="bg-indigo-500 hover:bg-indigo-600 transition-all text-white w-full py-2 rounded-md cursor-pointer">
-                {state === "register" ? "Create Account" : "Login"}
+            type="submit"
+            disabled={loading}
+            className="bg-indigo-500 hover:bg-indigo-600 transition-all text-white w-full py-2 rounded-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                {loading ? "Processing..." : state === "register" ? "Create Account" : "Login"}
             </button>
         </form>
         </div>

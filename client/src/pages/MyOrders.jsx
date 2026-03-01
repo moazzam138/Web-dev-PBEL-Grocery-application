@@ -40,7 +40,7 @@ const MyOrders = () => {
         <p className="text-2xl md:text-3xl font-medium">My Orders</p>
       </div>
 
-      {myOrders.map((order, index) => (
+      {orders.map((order, index) => (
         <div
           key={index}
           className="my-8 border border-gray-300 rounded-lg mb-10 p-4 py-5 max-w-4xl"

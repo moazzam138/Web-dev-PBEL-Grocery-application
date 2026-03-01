@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 // register user: /api/user/register
 export const registerUser = async (req, res) => {
   try {
+    console.log("registerUser called with body:", req.body);
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
       return res
@@ -47,7 +48,9 @@ export const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in registerUser:", error);
-    res.status(500).json({ message: "Internal server error" });
+    // send back the error message if mongoose validation or similar
+    const errMsg = error.message || "Internal server error";
+    res.status(500).json({ message: errMsg, success: false });
   }
 };
 
@@ -55,6 +58,7 @@ export const registerUser = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
+    console.log("loginUser called with body:", req.body);
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -85,7 +89,7 @@ export const loginUser = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.status(200).json({
-      message: "Logged in successfull",
+      message: "Logged in successfully",
       success: true,
       user: {
         name: user.name,
@@ -94,7 +98,7 @@ export const loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in loginUser:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message || "Internal server error", success: false });
   }
 };
 
@@ -126,10 +130,7 @@ export const logout = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "Strict",
     });
-    return res.status(200).json({
-      message: "Logged out successfully",
-      success: true,
-    });
+    return res.status(200).json({ message: "Logged out successfully", success: true });
   } catch (error) {
     console.error("Error in logout:", error);
     res.status(500).json({ message: "Internal server error" });
