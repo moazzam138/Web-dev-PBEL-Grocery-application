@@ -8,8 +8,18 @@ export const placeOrderCOD = async (req, res) => {
     const userId = req.user;
     const { items, address, paymentType, amount } = req.body;
 
+    console.log("=== ORDER REQUEST ===");
+    console.log("userId:", userId);
+    console.log("items count:", items?.length);
+    console.log("items:", JSON.stringify(items, null, 2));
+    console.log("address:", JSON.stringify(address, null, 2));
+    console.log("paymentType:", paymentType);
+    console.log("amount:", amount);
+    console.log("====================");
+
     // Validate request
     if (!address || !items || items.length === 0 || !amount) {
+      console.log("Validation failed");
       return res
         .status(400)
         .json({ message: "Invalid order details", success: false });
@@ -19,35 +29,54 @@ export const placeOrderCOD = async (req, res) => {
     const orderItems = [];
     let calculatedAmount = 0;
 
+    console.log("Processing items...");
     for (const item of items) {
-      const product = await Product.findById(item._id);
-      if (!product) {
-        // Product not found in DB — fallback to using client-provided item data (useful for local/dev dummy products)
-        console.warn(`Product ${item._id} not found in DB, using client-provided data`);
-        const price = item.offerPrice || item.price || 0;
-        const qty = item.quantity || 1;
-        const itemPrice = price * qty;
-        calculatedAmount += itemPrice;
-        orderItems.push({
-          product: item._id,
-          quantity: qty,
-          price,
-        });
-        continue;
+      console.log(`Processing item: ${item._id}, qty: ${item.quantity}`);
+      
+      let product = null;
+      try {
+        // Try to find product in database (only works if ID is a valid ObjectId)
+        product = await Product.findById(item._id);
+      } catch (err) {
+        // Product ID is not a valid ObjectId (likely a dummy product), skip DB lookup
+        console.log(`Item ${item._id} is not a valid ObjectId, using client data`);
       }
-
-      const itemPrice = product.offerPrice * (item.quantity || 1);
+      
+      // Use database product if found, otherwise use client data
+      const price = product?.offerPrice || item.offerPrice || item.price || 0;
+      const qty = item.quantity || 1;
+      const itemPrice = price * qty;
       calculatedAmount += itemPrice;
 
-      orderItems.push({
-        product: item._id,
-        quantity: item.quantity || 1,
-        price: product.offerPrice,
-      });
+      // Always store product details for order display (exclude large image array)
+      const productDetails = {
+        _id: item._id,
+        name: product?.name || item.name || "Unknown",
+        category: product?.category || item.category || "Unknown",
+        image: (item.image && Array.isArray(item.image)) ? [item.image[0]] : [], // Only store first image
+      };
+
+      const orderItem = {
+        product: product ? product._id : null,
+        quantity: qty,
+        price: price,
+        productDetails,
+      };
+      
+      console.log(`Order item created:`, JSON.stringify(orderItem, null, 2));
+      orderItems.push(orderItem);
     }
+
+    console.log("All items processed. OrderItems count:", orderItems.length);
 
     // Add shipping fee if applicable
     let finalAmount = amount;
+
+    console.log("Creating order with:");
+    console.log("- userId:", userId);
+    console.log("- items count:", orderItems.length);
+    console.log("- amount:", finalAmount);
+    console.log("- paymentType:", paymentType);
 
     // Create order document
     const order = await Order.create({
@@ -62,9 +91,11 @@ export const placeOrderCOD = async (req, res) => {
       },
       amount: finalAmount,
       paymentType: paymentType || "COD",
-      isPaid: paymentType === "Online" ? false : false, // Default false for COD
+      isPaid: paymentType === "Online" ? false : false,
       status: "Order Placed",
     });
+
+    console.log("✓ Order created successfully:", order._id);
 
     // Clear user's cart after successful order
     await User.findByIdAndUpdate(userId, { cartItems: {} });
@@ -75,8 +106,10 @@ export const placeOrderCOD = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error("Error in placeOrderCOD:", error);
-    res.status(500).json({ message: "Internal Server Error", success: false });
+    console.error("Error in placeOrderCOD:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("Full error:", error);
+    res.status(500).json({ message: error.message || "Internal Server Error", success: false });
   }
 };
 
@@ -89,7 +122,6 @@ export const getUserOrders = async (req, res) => {
       userId,
       $or: [{ paymentType: "COD" }, { isPaid: true }],
     })
-      .populate("items.product")
       .sort({ createdAt: -1 });
     console.log("Found orders:", orders.length);
     res.status(200).json({ success: true, orders });
@@ -105,11 +137,10 @@ export const getAllOrders = async (req, res) => {
     const orders = await Order.find({
       $or: [{ paymentType: "COD" }, { isPaid: true }],
     })
-      .populate("items.product")
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, orders });
   } catch (error) {
     console.error("Error in getAllOrders:", error);
-    res.status(500).json({ message: "Internal Server Error", success: false });
+    res.status(500).json({ message: error.message || "Internal Server Error", success: false });
   }
 };

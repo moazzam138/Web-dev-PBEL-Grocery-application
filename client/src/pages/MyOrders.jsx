@@ -61,7 +61,7 @@ const MyOrders = () => {
               <div className="flex items-center mb-4 md:mb-0">
                 <div className="p-4 rounded-lg">
                   <img
-                    src={item.product.image[0]}
+                    src={item.productDetails?.image?.[0] || item.product?.image?.[0]}
                     alt=""
                     className="w-16 h-16"
                   />
@@ -69,9 +69,9 @@ const MyOrders = () => {
 
                 <div className="ml-4">
                   <h2 className="text-xl font-medium">
-                    {item.product.name}
+                    {item.productDetails?.name || item.product?.name || "Product"}
                   </h2>
-                  <p>{item.product.category}</p>
+                  <p>{item.productDetails?.category || item.product?.category || "Unknown"}</p>
                 </div>
               </div>
 
@@ -87,7 +87,7 @@ const MyOrders = () => {
               </div>
 
               <p className=" text-lg">
-                Amount:₹{item.product.offerPrice * item.quantity}
+                Amount:₹{item.price * item.quantity}
               </p>
             </div>
           ))}

@@ -27,13 +27,17 @@ const Cart = () => {
   // state for selected address
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [paymentOption, setPaymentOption] = useState("COD");
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const getCart = () => {
     let tempArray = [];
     for (const key in cartItems) {
       const product = products.find((product) => product._id === key);
-      product.quantity = cartItems[key];
-      tempArray.push(product);
+      if (product) {
+        // Create a copy to avoid mutating the original product
+        const cartProduct = { ...product, quantity: cartItems[key] };
+        tempArray.push(cartProduct);
+      }
     }
     setCartArray(tempArray);
   };
@@ -64,6 +68,8 @@ const Cart = () => {
       return toast.error("Your cart is empty");
     }
 
+    setIsPlacingOrder(true);
+    
     // Calculate shipping fee
     const subtotal = totalCartAmount();
     const shippingFee = subtotal > 100 ? 0 : 20;
@@ -78,17 +84,25 @@ const Cart = () => {
       amount: subtotal + tax + shippingFee,
     };
 
-    // Place order via context
-    const result = await placeOrderFromContext(orderData);
+    try {
+      // Place order via context
+      const result = await placeOrderFromContext(orderData);
 
-    if (result.success) {
-      // Clear cart
-      setCartItems({});
-      
-      // Redirect to orders page after a short delay to allow state update
-      setTimeout(() => {
-        navigate("/my-orders");
-      }, 500);
+      if (result.success) {
+        // Clear cart
+        setCartItems({});
+        
+        // Redirect to orders page after a short delay to allow state update
+        setTimeout(() => {
+          setIsPlacingOrder(false);
+          navigate("/my-orders");
+        }, 500);
+      } else {
+        setIsPlacingOrder(false);
+      }
+    } catch (error) {
+      setIsPlacingOrder(false);
+      console.error("Error placing order:", error);
     }
   };
   return products.length > 0 && cartItems ? (
@@ -283,9 +297,13 @@ const Cart = () => {
 
         <button
           onClick={placeOrder}
-          className="w-full py-3 mt-6 cursor-pointer bg-indigo-500 text-white font-medium hover:bg-indigo-600 transition"
+          disabled={isPlacingOrder}
+          className="w-full py-3 mt-6 cursor-pointer bg-indigo-500 text-white font-medium hover:bg-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {paymentOption === "COD" ? "Place Order" : "Proceed to Checkout"}
+          {isPlacingOrder 
+            ? "Processing Order..." 
+            : (paymentOption === "COD" ? "Place Order" : "Proceed to Checkout")
+          }
         </button>
       </div>
     </div>

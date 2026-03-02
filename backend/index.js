@@ -17,7 +17,13 @@ dotenv.config();
 const app = express();
 
 // Allow multiple origins
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
 
 // Middlewares
 app.use(cors({ origin: allowedOrigins, credentials: true }));

@@ -1,5 +1,27 @@
 import mongoose from "mongoose";
 
+const orderItemSchema = new mongoose.Schema({
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  productDetails: {
+    _id: String,
+    name: String,
+    image: [String],
+    category: String,
+  },
+});
+
 const orderSchema = new mongoose.Schema(
   {
     userId: {
@@ -7,24 +29,7 @@ const orderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    items: [
-      {
-        // allow storing either a Product ObjectId or a client-side id/string (useful for local/dev dummy data)
-        product: {
-          type: mongoose.Schema.Types.Mixed,
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          required: true,
-          min: 1,
-        },
-        price: {
-          type: Number,
-          required: true,
-        },
-      },
-    ],
+    items: [orderItemSchema],
     amount: {
       type: Number,
       required: true,
