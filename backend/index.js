@@ -11,6 +11,20 @@ import cartRoutes from "./routes/cart.routes.js";
 import addressRoutes from "./routes/address.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 
+
+import path from "path";
+import express from "express";
+
+const app = express();
+
+const __dirname = path.resolve();
+
+// Serve frontend build
+app.use(express.static(path.join(__dirname, "../client/build")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/build/index.html"));
+});
 // Load environment variables first
 dotenv.config();
 
