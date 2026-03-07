@@ -13,7 +13,6 @@ import orderRoutes from "./routes/order.routes.js";
 
 
 import path from "path";
-import express from "express";
 
 const app = express();
 
@@ -28,7 +27,6 @@ app.get("*", (req, res) => {
 // Load environment variables first
 dotenv.config();
 
-const app = express();
 
 // Allow multiple origins
 const allowedOrigins = [
