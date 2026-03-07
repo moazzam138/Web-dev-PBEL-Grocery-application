@@ -64,7 +64,7 @@ const PORT = process.env.PORT || 5000;
 // Start server and connect to databases
 const startServer = async () => {
   try {
-    await connectDB();
+    await connectDB(process.env.MONGO_URI);
     await connectCloudinary();
     
     app.listen(PORT, () => {
